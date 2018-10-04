@@ -9,10 +9,17 @@ local opts = {
     status_line_position = "bottom_left",
     status_line_size = 36,
     status_line = "${filename} [${playlist-pos-1}/${playlist-count}]",
+    supported_extensions=[[
+    ["jpg", "jpeg", "png"]
+    ]],
 }
 (require 'mp.options').read_options(opts)
+local utils = require 'mp.utils'
 local msg = require 'mp.msg'
 local assdraw = require 'mp.assdraw'
+
+opts.supported_extensions = utils.parse_json(opts.supported_extensions)
+
 
 function register_idle(func)
     current_idle = func
@@ -370,3 +377,39 @@ mp.add_key_binding(nil, "force-print-filename", force_print_filename)
 mp.add_key_binding(nil, "enable-status-line", enable_status_line)
 mp.add_key_binding(nil, "disable-status-line", disable_status_line)
 mp.add_key_binding(nil, "toggle-status-line", function() if status_line_enabled then disable_status_line() else enable_status_line() end end)
+
+
+local function findl(str, patterns)
+    for i,p in pairs(patterns) do
+        if str:find("%."..p.."$") then
+            return true
+        end
+    end
+    return false
+end
+
+mp.add_hook("on_load", 10, function ()
+    local url = mp.get_property("stream-open-filename", "")
+    msg.debug("stream-open-filename: "..url)
+    if (findl(url, opts.supported_extensions) == false) then
+        msg.debug("did not detect an image file")
+
+        --deactivate shortcuts
+        mp.remove_key_binding("drag-to-pan")
+        mp.remove_key_binding("cursor-centric-zoom-up")
+        mp.remove_key_binding("cursor-centric-zoom-down")
+        --reset pan and zoom
+        mp.command("no-osd set video-pan-x 0")
+        mp.command("no-osd set video-pan-y 0")
+        mp.command("no-osd set video-zoom 0")
+        --other cleanup
+        disable_status_line()
+        return
+    end
+
+    mp.add_key_binding("MBTN_LEFT", "drag-to-pan", drag_to_pan_handler, {complex = true})
+    mp.add_forced_key_binding("WHEEL_UP",   "cursor-centric-zoom-up",   function() cursor_centric_zoom_handler( 0.1) end)
+    mp.add_forced_key_binding("WHEEL_DOWN", "cursor-centric-zoom-down", function() cursor_centric_zoom_handler(-0.1) end)
+    enable_status_line()
+
+end)
