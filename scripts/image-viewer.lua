@@ -404,6 +404,7 @@ mp.add_hook("on_load", 10, function ()
         mp.command("no-osd set video-zoom 0")
         --other cleanup
         disable_status_line()
+        mp.commandv("script-message", "osc-visibility" ,"auto")
         return
     end
 
@@ -411,5 +412,6 @@ mp.add_hook("on_load", 10, function ()
     mp.add_forced_key_binding("WHEEL_UP",   "cursor-centric-zoom-up",   function() cursor_centric_zoom_handler( 0.1) end)
     mp.add_forced_key_binding("WHEEL_DOWN", "cursor-centric-zoom-down", function() cursor_centric_zoom_handler(-0.1) end)
     enable_status_line()
+    mp.commandv("script-message", "osc-visibility" ,"never")
 
 end)
